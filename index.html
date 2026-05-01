@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Peinture">
+<meta name="theme-color" content="#f2f0ec">
+<meta name="format-detection" content="telephone=no">
+<title>Suivi Peinture — Rénovation</title>
+<style>
+:root {
+  --bg: #f2f0ec;
+  --surface: #ffffff;
+  --surface-2: #fafaf8;
+  --surface-3: #f5f3ef;
+  --border: rgba(0, 0, 0, 0.10);
+  --border-md: rgba(0, 0, 0, 0.18);
+  --text: #1a1a1a;
+  --text-2: #666;
+  --text-3: #aaa;
+  --text-4: #ccc;
+  --green: #2D7A4F;
+  --green-bg: #E8F7EF;
+  --green-border: #A8D8BC;
+  --warn-bg: #FFF8E0;
+  --warn-text: #A07800;
+  --warn-border: #E0C840;
+  --accent: #C1654A;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --tap: 40px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 1.5rem 1rem;
+  padding: max(env(safe-area-inset-top), 1.5rem) max(env(safe-area-inset-right), 1rem) max(env(safe-area-inset-bottom), 1.5rem) max(env(safe-area-inset-left), 1rem);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+@media (min-width: 600px) { body { padding: 2rem 1.5rem; } }
+.tracker { max-width: 920px; margin: 0 auto; }
+
+button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+input, select { font-family: inherit; }
+
+/* Header */
+.tracker-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px;
+}
+.tracker-title { font-size: 20px; font-weight: 500; }
+.header-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.header-btn {
+  font-size: 12px; background: var(--surface); border: 0.5px solid var(--border-md);
+  border-radius: 999px; padding: 8px 14px; min-height: var(--tap); cursor: pointer;
+  color: var(--text-2); display: inline-flex; align-items: center; gap: 5px;
+}
+.header-btn:hover { background: var(--surface-3); color: var(--text); }
+.header-btn.danger:hover { color: var(--accent); border-color: var(--accent); }
+.section-label {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.07em;
+  color: var(--text-3); text-transform: uppercase;
+  margin: 1.75rem 0 0.75rem;
+}
+
+/* PALETTE */
+.palette-section, .room-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; margin-bottom: 0.75rem;
+}
+.accordion-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; min-height: var(--tap);
+  background: var(--surface-2); cursor: pointer; user-select: none;
+  border-bottom: 0.5px solid transparent;
+}
+.accordion-header.open { border-bottom-color: #eee; }
+.accordion-header:active { background: var(--surface-3); }
+.accordion-toggle { font-size: 12px; color: var(--text-4); transition: transform 0.2s; }
+.accordion-toggle.open { transform: rotate(180deg); }
+
+.palette-header-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.palette-title { font-size: 14px; font-weight: 500; }
+.palette-swatches-preview { display: flex; gap: 4px; flex-wrap: wrap; }
+.palette-preview-swatch {
+  display: inline-block; width: 14px; height: 14px;
+  border-radius: 3px; border: 0.5px solid var(--border-md);
+}
+.palette-body { display: none; padding: 14px; }
+.palette-body.open { display: block; }
+
+.palette-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px; margin-bottom: 14px;
+}
+.paint-entry {
+  background: var(--surface-2); border: 0.5px solid #eee;
+  border-radius: 10px; padding: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.paint-swatch-big, .paint-swatch-disabled {
+  width: 40px; height: 40px; border-radius: var(--radius-xs);
+  border: 0.5px solid var(--border-md); flex-shrink: 0;
+}
+.paint-swatch-big {
+  cursor: pointer; padding: 0;
+  appearance: none; -webkit-appearance: none;
+  background: transparent;
+}
+.paint-swatch-big::-webkit-color-swatch-wrapper { padding: 0; border-radius: 5px; }
+.paint-swatch-big::-webkit-color-swatch { border: none; border-radius: 5px; }
+.paint-swatch-big::-moz-color-swatch { border: none; border-radius: 5px; }
+.paint-swatch-disabled { background: #f0f0f0; }
+
+.paint-entry-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.paint-name-input {
+  font-size: 16px; border: 0.5px solid var(--border); border-radius: var(--radius-xs);
+  padding: 6px 10px; background: var(--surface); width: 100%; color: var(--text);
+  min-height: 32px;
+}
+.paint-name-input:focus { outline: none; border-color: var(--text-3); }
+.paint-name-input:disabled { background: var(--surface-2); color: var(--text-2); }
+.paint-finish-select {
+  font-size: 13px; border: 0.5px solid var(--border); border-radius: var(--radius-xs);
+  padding: 5px 26px 5px 10px; background-color: var(--surface);
+  appearance: none; cursor: pointer; color: var(--text-2); min-height: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+}
+.paint-finish-select:disabled { background-color: var(--surface-2); cursor: default; }
+.paint-delete-btn {
+  width: var(--tap); height: var(--tap); border-radius: 50%;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-4); font-size: 22px; line-height: 1;
+  flex-shrink: 0;
+}
+.paint-delete-btn:hover { color: var(--accent); background: var(--surface-3); }
+.paint-delete-spacer { width: var(--tap); flex-shrink: 0; }
+
+.add-paint-btn {
+  font-size: 14px; background: var(--surface-3); border: 0.5px dashed var(--border-md);
+  border-radius: var(--radius-sm); padding: 12px 14px; min-height: var(--tap);
+  cursor: pointer; color: var(--text-2); width: 100%;
+}
+.add-paint-btn:hover { background: #eee; color: var(--text); }
+
+/* ROOMS */
+.room-name { font-size: 15px; font-weight: 500; }
+.room-meta { font-size: 12px; color: var(--text-3); }
+.room-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.room-body { display: none; }
+.room-body.open { display: block; }
+
+.wall-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.wall-table th {
+  text-align: left; padding: 8px 14px; color: var(--text-3);
+  font-weight: 400; font-size: 10px; letter-spacing: 0.05em;
+  border-bottom: 0.5px solid #eee; background: var(--surface-2);
+  text-transform: uppercase;
+}
+.wall-table td {
+  padding: 10px 14px; border-bottom: 0.5px solid #f0f0f0;
+  vertical-align: middle;
+}
+.wall-table tr:last-child td { border-bottom: none; }
+.wall-name { font-size: 13px; }
+.wall-dims { color: var(--text-4); font-size: 11px; }
+.wall-brut, .wall-net { font-weight: 500; font-size: 12px; }
+.wall-ded { font-size: 11px; color: var(--text-4); }
+.muted { color: var(--text-4); font-style: italic; font-size: 12px; }
+
+/* Wall done state */
+.wall-row.done { opacity: 0.55; }
+.wall-row.done .wall-net { text-decoration: line-through; color: var(--text-3); }
+.wall-row.done .wall-name::after {
+  content: "✓"; color: var(--green); font-weight: 600;
+  margin-left: 6px; font-size: 12px;
+}
+.done-checkbox {
+  appearance: none; -webkit-appearance: none;
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1.5px solid var(--border-md); background: var(--surface);
+  cursor: pointer; flex-shrink: 0; position: relative;
+  margin: 0; padding: 0; display: inline-block; vertical-align: middle;
+}
+.done-checkbox:checked {
+  background: var(--green); border-color: var(--green);
+}
+.done-checkbox:checked::after {
+  content: ""; position: absolute;
+  left: 6px; top: 2px; width: 6px; height: 11px;
+  border: solid white; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.done-cell { width: 36px; text-align: center; }
+.done-cell label {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.note {
+  font-size: 10px; color: var(--warn-text); background: var(--warn-bg);
+  padding: 1px 5px; border-radius: 4px; border: 0.5px solid var(--warn-border);
+  margin-left: 4px;
+}
+
+/* Mobile: stacked card-style rows */
+@media (max-width: 640px) {
+  .wall-table thead { display: none; }
+  .wall-table, .wall-table tbody, .wall-table tr, .wall-table td { display: block; width: 100%; }
+  .wall-table tr {
+    padding: 10px 14px; border-bottom: 0.5px solid #f0f0f0;
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center;
+  }
+  .wall-table tr:last-child { border-bottom: none; }
+  .wall-table td { padding: 0; border: none; }
+  .wall-table td.cell-name { grid-column: 1; }
+  .wall-table td.cell-dims { grid-column: 2; text-align: right; }
+  .wall-table td.cell-ded { grid-column: 1 / -1; font-size: 11px; }
+  .wall-table td.cell-net { grid-column: 1; }
+  .wall-table td.cell-brut { display: none; }
+  .wall-table td.cell-color { grid-column: 1 / -1; margin-top: 6px; }
+  .wall-table td.cell-done { grid-column: 2; justify-self: end; align-self: center; }
+  .custom-select { width: 100%; }
+  .custom-select-trigger { width: 100%; }
+}
+
+/* CUSTOM DROPDOWN */
+.custom-select { position: relative; display: inline-block; min-width: 170px; }
+.custom-select-trigger {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 32px 8px 10px; min-height: var(--tap);
+  border: 0.5px solid var(--border); border-radius: 8px;
+  background: var(--surface-2); cursor: pointer; font-size: 13px;
+  user-select: none; position: relative; white-space: nowrap;
+}
+.custom-select-trigger:active { background: var(--surface-3); }
+.custom-select-trigger::after {
+  content: "▼"; font-size: 9px; color: var(--text-4);
+  position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+}
+.custom-select-trigger .swatch {
+  width: 14px; height: 14px; border-radius: 3px;
+  border: 0.5px solid var(--border-md); flex-shrink: 0;
+}
+.custom-select-trigger .label { overflow: hidden; text-overflow: ellipsis; }
+
+.custom-dropdown {
+  display: none; position: fixed; z-index: 500;
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,0.10);
+  overflow-y: auto; max-height: 320px; min-width: 200px;
+  -webkit-overflow-scrolling: touch;
+}
+.custom-dropdown.open { display: block; }
+.dropdown-option {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; min-height: var(--tap); cursor: pointer;
+  font-size: 14px; white-space: nowrap;
+}
+.dropdown-option:active { background: var(--surface-3); }
+.dropdown-option.selected { background: var(--green-bg); }
+.dropdown-option .swatch {
+  width: 14px; height: 14px; border-radius: 3px;
+  border: 0.5px solid var(--border-md); flex-shrink: 0;
+}
+
+/* Bottom sheet on small screens */
+.color-sheet {
+  border: none; padding: 0; max-width: none; width: 100%;
+  border-radius: 14px 14px 0 0;
+  margin: 0 0 0 0; position: fixed; bottom: 0; left: 0; right: 0; top: auto;
+  background: var(--surface);
+  max-height: 70vh;
+}
+.color-sheet::backdrop { background: rgba(0,0,0,0.35); }
+.color-sheet-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px; border-bottom: 0.5px solid #eee;
+  position: sticky; top: 0; background: var(--surface);
+}
+.color-sheet-title { font-size: 14px; font-weight: 500; }
+.color-sheet-close {
+  background: none; border: none; font-size: 24px; line-height: 1;
+  color: var(--text-3); width: 36px; height: 36px; cursor: pointer;
+}
+.color-sheet-list { padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); overflow-y: auto; max-height: calc(70vh - 60px); }
+.color-sheet-list .dropdown-option { padding: 14px 16px; min-height: 52px; }
+.color-sheet-list .dropdown-option .swatch { width: 18px; height: 18px; border-radius: 4px; }
+
+/* TOTALS */
+.totals-section { margin-top: 1.5rem; }
+.totals-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+}
+@media (min-width: 560px) { .totals-grid { grid-template-columns: repeat(3, 1fr); } }
+.total-card {
+  background: var(--surface); border: 0.5px solid #e0ddd8;
+  border-radius: 10px; padding: 12px 14px; transition: opacity 0.2s;
+}
+.total-card.zero { opacity: 0.3; }
+.total-label {
+  font-size: 11px; color: var(--text-2); margin-bottom: 6px;
+  display: flex; align-items: center; gap: 7px;
+}
+.total-chip {
+  width: 12px; height: 12px; border-radius: 3px;
+  border: 0.5px solid var(--border-md); flex-shrink: 0;
+}
+.total-val { font-size: 22px; font-weight: 500; }
+.total-liters { font-size: 12px; color: var(--text-2); font-weight: 500; margin-top: 3px; }
+
+.grand-total {
+  background: var(--surface); border: 0.5px solid #ccc;
+  border-radius: var(--radius); padding: 18px 20px; margin-top: 1rem;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-wrap: wrap; gap: 16px;
+}
+.grand-label {
+  font-size: 11px; color: var(--text-3); font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;
+}
+.grand-val { font-size: 30px; font-weight: 500; }
+.grand-sub { font-size: 12px; color: var(--text-4); margin-top: 4px; }
+
+.print-note {
+  text-align: center; font-size: 12px; color: var(--text-4);
+  margin-top: 2rem; padding-top: 1rem; border-top: 0.5px solid #eee;
+}
+
+/* PRINT */
+@media print {
+  body { background: white; padding: 0; }
+  .no-print { display: none !important; }
+  .palette-body, .room-body { display: block !important; }
+  .accordion-toggle { display: none; }
+  .room-card, .palette-section { break-inside: avoid; border-color: #ccc; }
+  .total-card.zero { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="tracker">
+
+  <div class="tracker-header">
+    <span class="tracker-title">Suivi peinture — Rénovation</span>
+    <div class="header-actions no-print">
+      <button class="header-btn" onclick="exportJSON()" title="Sauvegarder un fichier JSON">↓ Exporter</button>
+      <button class="header-btn" onclick="document.getElementById('import-file').click()" title="Charger un fichier JSON">↑ Importer</button>
+      <input type="file" id="import-file" accept="application/json,.json" style="display:none" onchange="importJSON(event)">
+      <button class="header-btn danger" onclick="resetState()" title="Revenir aux valeurs par défaut">↺ Reset</button>
+    </div>
+  </div>
+
+  <p class="section-label">Palette de couleurs</p>
+  <div class="palette-section">
+    <div class="accordion-header" id="palette-header" onclick="togglePalette()">
+      <div class="palette-header-left">
+        <span class="palette-title">Personnaliser la palette</span>
+        <div class="palette-swatches-preview" id="palette-preview"></div>
+      </div>
+      <span class="accordion-toggle" id="palette-toggle">▼</span>
+    </div>
+    <div class="palette-body" id="palette-body">
+      <div class="palette-grid" id="palette-grid"></div>
+      <button class="add-paint-btn" onclick="addPaint()">+ Ajouter une couleur</button>
+    </div>
+  </div>
+
+  <p class="section-label">Pièces — taper pour déplier</p>
+  <div id="rooms-container"></div>
+
+  <div class="totals-section">
+    <p class="section-label" style="margin-top:0">Totaux par couleur</p>
+    <div class="totals-grid" id="totals-grid"></div>
+    <div class="grand-total">
+      <div>
+        <p class="grand-label">Surface totale à peindre</p>
+        <div class="grand-val" id="grand-total-val">—</div>
+        <div class="grand-sub">2 couches · ~6 m²/L · marge +15%</div>
+      </div>
+      <div style="text-align:right">
+        <p class="grand-label">Plus grosse commande</p>
+        <div id="biggest-color" style="font-size:14px;font-weight:500;margin-bottom:4px">—</div>
+        <div id="biggest-qty" style="font-size:22px;font-weight:500">—</div>
+        <div class="grand-sub" id="biggest-liters">—</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="print-note">Suivi peinture · Rénovation maison · Cmd/Ctrl+P pour imprimer</p>
+</div>
+
+<dialog id="color-sheet" class="color-sheet">
+  <div class="color-sheet-header">
+    <span class="color-sheet-title" id="color-sheet-title">Choisir une couleur</span>
+    <button class="color-sheet-close" onclick="closeColorSheet()" aria-label="Fermer">×</button>
+  </div>
+  <div class="color-sheet-list" id="color-sheet-list"></div>
+</dialog>
+
+<script>
+'use strict';
+
+// ─── CONSTANTES ─────────────────────────────────────────────────────────────
+const SCHEMA_VERSION = '1';
+const LS_VERSION = 'peinture_schema_version';
+const LS_PALETTE = 'peinture_palette';
+const LS_ASSIGN = 'peinture_assignments';
+const LS_DONE = 'peinture_walls_done';
+const LS_UI = 'peinture_ui_state';
+
+const FINISHES = ['mat', 'velours', 'satiné', 'brillant', 'laqué'];
+
+const PALETTE_DEFAULT = [
+  { id:'creme_sat',       label:'Crème',       hex:'#F5F0E8', finish:'satiné'  },
+  { id:'creme_vel',       label:'Crème',       hex:'#EDE8DC', finish:'velours' },
+  { id:'blanc_mat',       label:'Blanc',       hex:'#F8F8F5', finish:'mat'     },
+  { id:'blanc_sat',       label:'Blanc',       hex:'#EFEFEF', finish:'satiné'  },
+  { id:'kaki_sat',        label:'Kaki',        hex:'#6B7C5C', finish:'satiné'  },
+  { id:'sauge_vel',       label:'Sauge',       hex:'#8A9E85', finish:'velours' },
+  { id:'aubergine_vel',   label:'Aubergine',   hex:'#5B3060', finish:'velours' },
+  { id:'terracotta_vel',  label:'Terracotta',  hex:'#C1654A', finish:'velours' },
+  { id:'dead_salmon_vel', label:'Dead salmon', hex:'#C79B8A', finish:'velours' },
+  { id:'taupe_vel',       label:'Taupe',       hex:'#8C7B6B', finish:'velours' },
+  { id:'non_peint',       label:'Non peint',   hex:'#F0F0F0', finish:null      },
+];
+
+const ROOMS = [
+  { id:'buanderie', name:'Buanderie', meta:'210 × 390 cm — Hsp 250 cm — 8,2 m²', walls:[
+    { id:'g', label:'Gauche',       dims:'390×250', brut:9.75, ded:0,    dedLabel:'—',                         paint:'kaki_sat'  },
+    { id:'d', label:'Droit',        dims:'390×250', brut:9.75, ded:0,    dedLabel:'—',                         paint:'creme_sat' },
+    { id:'h', label:'Fond (haut)',  dims:'210×250', brut:5.25, ded:1.43, dedLabel:'Porte 70×204',              paint:'creme_sat' },
+    { id:'b', label:'Entrée (bas)', dims:'210×250', brut:5.25, ded:0,    dedLabel:'—',                         paint:'creme_sat' },
+    { id:'p', label:'Plafond',      dims:'210×390', brut:8.19, ded:0,    dedLabel:'—',                         paint:'blanc_mat' },
+  ]},
+  { id:'garage', name:'Garage', meta:'347 × 505 cm — Hsp 250 cm — 17,5 m²', walls:[
+    { id:'g', label:'Gauche',              dims:'505×250', brut:12.63, ded:0,    dedLabel:'—',                paint:'kaki_sat'  },
+    { id:'d', label:'Droit',               dims:'505×250', brut:12.63, ded:0,    dedLabel:'—',                paint:'blanc_sat' },
+    { id:'h', label:'Fond (haut)',         dims:'347×250', brut:8.68,  ded:2.15, dedLabel:'Porte 100×215',    paint:'blanc_sat' },
+    { id:'b', label:'Porte garage (bas)',  dims:'347×250', brut:8.68,  ded:4.80, dedLabel:'Porte 240×200',    paint:'blanc_sat' },
+    { id:'p', label:'Plafond',             dims:'347×505', brut:17.52, ded:0,    dedLabel:'—',                paint:'blanc_mat' },
+  ]},
+  { id:'ch_enfant', name:'Chambre enfant', meta:'379 × 390 cm — Hsp 250 cm — 14,8 m²', walls:[
+    { id:'h', label:'Fond (haut)',  dims:'379×250', brut:9.48,  ded:1.20, dedLabel:'Fenêtre ~120×100 <est>', paint:'creme_vel' },
+    { id:'g', label:'Gauche',       dims:'390×250', brut:9.75,  ded:0,    dedLabel:'—',                      paint:'sauge_vel' },
+    { id:'d', label:'Droit',        dims:'390×250', brut:9.75,  ded:0,    dedLabel:'—',                      paint:'creme_vel' },
+    { id:'b', label:'Entrée (bas)', dims:'379×250', brut:9.48,  ded:1.69, dedLabel:'Porte ~83×204',          paint:'sauge_vel' },
+    { id:'p', label:'Plafond',      dims:'379×390', brut:14.78, ded:0,    dedLabel:'—',                      paint:'creme_vel' },
+  ]},
+  { id:'bureau', name:'Bureau', meta:'285 × 390 cm — Hsp 250 cm — 11,1 m²', walls:[
+    { id:'h', label:'Fond (haut)',  dims:'285×250', brut:7.13,  ded:3.01, dedLabel:'Porte-fen. ~140×215 <est>', paint:'sauge_vel'     },
+    { id:'g', label:'Gauche',       dims:'390×250', brut:9.75,  ded:0,    dedLabel:'—',                         paint:'sauge_vel'     },
+    { id:'d', label:'Droit',        dims:'390×250', brut:9.75,  ded:0,    dedLabel:'—',                         paint:'sauge_vel'     },
+    { id:'b', label:'Entrée (bas)', dims:'285×250', brut:7.13,  ded:1.69, dedLabel:'Porte ~83×204',             paint:'aubergine_vel' },
+    { id:'p', label:'Plafond',      dims:'285×390', brut:11.12, ded:0,    dedLabel:'—',                         paint:'sauge_vel'     },
+  ]},
+  { id:'ch_parents', name:'Chambre parents', meta:'388 × 390 cm — Hsp 250 cm — 15,1 m²', walls:[
+    { id:'h', label:'Fond (haut)',  dims:'388×250', brut:9.70,  ded:3.01, dedLabel:'Porte-fen. ~140×215 <est>', paint:'creme_vel'      },
+    { id:'g', label:'Gauche',       dims:'390×250', brut:9.75,  ded:0,    dedLabel:'—',                         paint:'creme_vel'      },
+    { id:'d', label:'Droit',        dims:'390×250', brut:9.75,  ded:0,    dedLabel:'—',                         paint:'terracotta_vel' },
+    { id:'b', label:'Entrée (bas)', dims:'388×250', brut:9.70,  ded:1.69, dedLabel:'Porte ~83×204',             paint:'creme_vel'      },
+    { id:'p', label:'Plafond',      dims:'388×390', brut:15.13, ded:0,    dedLabel:'—',                         paint:'creme_vel'      },
+  ]},
+  { id:'wc', name:'WC', meta:'138 × 106 cm — Hsp 250 cm — 1,5 m²', walls:[
+    { id:'l', label:'Longs ×2',  dims:'138×250', brut:6.90, ded:0,    dedLabel:'—',             paint:'terracotta_vel' },
+    { id:'c', label:'Courts ×2', dims:'106×250', brut:5.30, ded:1.49, dedLabel:'Porte ~73×204', paint:'terracotta_vel' },
+    { id:'p', label:'Plafond',   dims:'138×106', brut:1.46, ded:0,    dedLabel:'—',             paint:'terracotta_vel' },
+  ]},
+  { id:'entree', name:'Entrée', meta:'148 × 103 cm — Hsp 250 cm — 1,5 m²', walls:[
+    { id:'l', label:'Longs ×2',  dims:'148×250', brut:7.40, ded:0,    dedLabel:'—',             paint:'taupe_vel' },
+    { id:'c', label:'Courts ×2', dims:'103×250', brut:5.15, ded:1.69, dedLabel:'Porte ~83×204', paint:'taupe_vel' },
+    { id:'p', label:'Plafond',   dims:'148×103', brut:1.52, ded:0,    dedLabel:'—',             paint:'taupe_vel' },
+  ]},
+  { id:'couloir', name:'Couloir', meta:'L-shape — Hsp 250 cm — 6,5 m²', walls:[
+    { id:'n',  label:'Nord (vers chambres)', dims:'503×250', brut:12.58, ded:5.07, dedLabel:'3 portes 83×204', paint:'dead_salmon_vel' },
+    { id:'o',  label:'Ouest',                dims:'103×250', brut:2.58,  ded:0,    dedLabel:'—',               paint:'dead_salmon_vel' },
+    { id:'s1', label:'Sud (hors escalier)',  dims:'141×250', brut:3.53,  ded:0,    dedLabel:'Escalier déduit', paint:'dead_salmon_vel' },
+    { id:'e',  label:'Est + section droite', dims:'209×250', brut:5.23,  ded:1.69, dedLabel:'Porte SdB',       paint:'dead_salmon_vel' },
+    { id:'s2', label:'Sud section droite',   dims:'124×250', brut:3.10,  ded:0,    dedLabel:'—',               paint:'dead_salmon_vel' },
+    { id:'i',  label:'Paroi intérieure (L)', dims:'106×250', brut:2.65,  ded:0,    dedLabel:'—',               paint:'dead_salmon_vel' },
+    { id:'p',  label:'Plafond',              dims:'L-shape', brut:6.50,  ded:0,    dedLabel:'—',               paint:'dead_salmon_vel' },
+  ]},
+  { id:'sdb', name:'Salle de bain', meta:'320 × 194 cm — Hsp 250 cm — 5,9 m²', walls:[
+    { id:'b', label:'Bas (long)',     dims:'320×250', brut:8.00, ded:0,    dedLabel:'—',             paint:'creme_sat'  },
+    { id:'h', label:'Haut (long)',    dims:'320×250', brut:8.00, ded:0,    dedLabel:'—',             paint:'creme_sat'  },
+    { id:'g', label:'Gauche (court)', dims:'194×250', brut:4.85, ded:1.84, dedLabel:'Porte ~90×204', paint:'creme_sat'  },
+    { id:'d', label:'Droit',          dims:'—',       brut:0,    ded:0,    dedLabel:'Carrelage',     paint:'non_peint'  },
+    { id:'p', label:'Plafond',        dims:'320×194', brut:5.90, ded:0,    dedLabel:'—',             paint:'creme_sat'  },
+  ]},
+  { id:'cuisine', name:'Cuisine', meta:'400 × 370 cm — Hsp 250 cm — 14,8 m²', walls:[
+    { id:'h', label:'Fond (haut)',        dims:'400×250', brut:10.00, ded:1.78, dedLabel:'Porte ~83×215',    paint:'creme_vel'  },
+    { id:'g', label:'Gauche',             dims:'370×250', brut:9.25,  ded:0,    dedLabel:'—',                paint:'creme_vel'  },
+    { id:'b', label:'Bas (jardin)',       dims:'400×250', brut:10.00, ded:4.23, dedLabel:'PF 180×235',       paint:'creme_vel'  },
+    { id:'d', label:'Droit (vers salon)', dims:'—',       brut:0,     ded:0,    dedLabel:'Ouverture salon',  paint:'non_peint'  },
+    { id:'p', label:'Plafond',            dims:'400×370', brut:14.80, ded:0,    dedLabel:'—',                paint:'creme_vel'  },
+  ]},
+  { id:'salon', name:'Salon / Salle à manger', meta:'~394×480 cm — Hsp 250 cm — 24,2 m²', walls:[
+    { id:'h',  label:'Fond (haut)',           dims:'394×250',  brut:9.85,  ded:1.43, dedLabel:'Porte 70×204',      paint:'creme_vel' },
+    { id:'d',  label:'Droit',                 dims:'480×250',  brut:12.00, ded:0,    dedLabel:'—',                 paint:'creme_vel' },
+    { id:'b',  label:'Bas (jardin)',          dims:'362×250',  brut:9.05,  ded:4.94, dedLabel:'PF 210×235',        paint:'creme_vel' },
+    { id:'g1', label:'Gauche haut (couloir)', dims:'~143×250', brut:3.58,  ded:0,    dedLabel:'—',                 paint:'creme_vel' },
+    { id:'g2', label:'Gauche bas (cuisine)',  dims:'—',        brut:0,     ded:0,    dedLabel:'Ouverture cuisine', paint:'non_peint' },
+    { id:'p',  label:'Plafond',               dims:'~24,2 m²', brut:24.20, ded:0,    dedLabel:'—',                 paint:'creme_vel' },
+  ]},
+];
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let palette = clonePalette();
+let assignments = defaultAssignments();
+let wallsDone = {};
+let uiState = defaultUIState();
+
+function clonePalette() { return PALETTE_DEFAULT.map(p => ({ ...p })); }
+function defaultAssignments() {
+  const a = {};
+  ROOMS.forEach(r => r.walls.forEach(w => { a[`${r.id}_${w.id}`] = w.paint; }));
+  return a;
+}
+function defaultWallsDone() { return {}; }
+function defaultUIState() {
+  const open = {};
+  ROOMS.forEach((r, i) => { open[r.id] = i === 0; });
+  return { paletteOpen: false, roomsOpen: open };
+}
+
+// ─── PERSISTENCE ────────────────────────────────────────────────────────────
+let saveTimer = null;
+function saveState() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(LS_VERSION, SCHEMA_VERSION);
+      localStorage.setItem(LS_PALETTE, JSON.stringify(palette));
+      localStorage.setItem(LS_ASSIGN, JSON.stringify(assignments));
+      localStorage.setItem(LS_DONE, JSON.stringify(wallsDone));
+      localStorage.setItem(LS_UI, JSON.stringify(uiState));
+    } catch (e) {
+      console.warn('localStorage indisponible:', e);
+    }
+  }, 150);
+}
+
+function loadState() {
+  try {
+    const ver = localStorage.getItem(LS_VERSION);
+    if (ver && ver !== SCHEMA_VERSION) return; // future migrations
+    const p = localStorage.getItem(LS_PALETTE);
+    const a = localStorage.getItem(LS_ASSIGN);
+    const d = localStorage.getItem(LS_DONE);
+    const u = localStorage.getItem(LS_UI);
+    if (p) {
+      const parsed = JSON.parse(p);
+      if (Array.isArray(parsed) && parsed.length && parsed.find(x => x.id === 'non_peint')) {
+        palette = parsed;
+      }
+    }
+    if (a) {
+      const parsed = JSON.parse(a);
+      if (parsed && typeof parsed === 'object') assignments = { ...assignments, ...parsed };
+    }
+    if (d) {
+      const parsed = JSON.parse(d);
+      if (parsed && typeof parsed === 'object') wallsDone = parsed;
+    }
+    if (u) {
+      const parsed = JSON.parse(u);
+      if (parsed && typeof parsed === 'object') uiState = { ...defaultUIState(), ...parsed, roomsOpen: { ...defaultUIState().roomsOpen, ...(parsed.roomsOpen || {}) } };
+    }
+  } catch (e) {
+    console.warn('State corrompu, reset partiel:', e);
+  }
+  // Sanitize: drop assignments to paints that no longer exist
+  Object.keys(assignments).forEach(k => {
+    if (!palette.find(p => p.id === assignments[k])) assignments[k] = 'non_peint';
+  });
+}
+
+function exportJSON() {
+  const data = {
+    schemaVersion: SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    palette, assignments, wallsDone, uiState
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `peinture-tracker-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.palette || !data.assignments) throw new Error('Fichier invalide');
+      if (!confirm('Remplacer les données actuelles par celles du fichier importé ?')) return;
+      palette = data.palette;
+      assignments = data.assignments;
+      wallsDone = (data.wallsDone && typeof data.wallsDone === 'object') ? data.wallsDone : {};
+      if (data.uiState) uiState = data.uiState;
+      // Ensure non_peint exists
+      if (!palette.find(p => p.id === 'non_peint')) {
+        palette.push({ id:'non_peint', label:'Non peint', hex:'#F0F0F0', finish:null });
+      }
+      Object.keys(assignments).forEach(k => {
+        if (!palette.find(p => p.id === assignments[k])) assignments[k] = 'non_peint';
+      });
+      saveState();
+      renderAll();
+    } catch (err) {
+      alert('Import impossible : ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function resetState() {
+  if (!confirm('Réinitialiser la palette et les assignations aux valeurs par défaut ?')) return;
+  palette = clonePalette();
+  assignments = defaultAssignments();
+  wallsDone = defaultWallsDone();
+  uiState = defaultUIState();
+  saveState();
+  renderAll();
+}
+
+// ─── HELPERS ────────────────────────────────────────────────────────────────
+function getPaint(id) {
+  return palette.find(p => p.id === id) || palette.find(p => p.id === 'non_peint');
+}
+function paintLabel(p) {
+  if (!p) return '—';
+  if (p.id === 'non_peint' || !p.finish) return p.label;
+  return `${p.label} ${p.finish}`;
+}
+function fmt(n) { return n.toFixed(2).replace('.', ','); }
+function fmt1(n) { return n.toFixed(1).replace('.', ','); }
+function getNet(roomId, wallId) {
+  const room = ROOMS.find(r => r.id === roomId);
+  const wall = room && room.walls.find(w => w.id === wallId);
+  if (!wall) return 0;
+  const key = `${roomId}_${wallId}`;
+  const pid = assignments[key];
+  if (pid === 'non_peint' || wall.brut === 0) return 0;
+  return Math.max(0, wall.brut - wall.ded);
+}
+function getRemainingNet(roomId, wallId) {
+  // Excludes already-painted walls — used for totals
+  if (wallsDone[`${roomId}_${wallId}`]) return 0;
+  return getNet(roomId, wallId);
+}
+function toLiters(m2) {
+  // 1L ≈ 6 m² sur 2 couches → arrondi au 0,1 L supérieur
+  return Math.ceil(m2 / 6 * 10) / 10;
+}
+function hexToRgb(hex) {
+  const h = hex.replace('#','');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function luminance(hex) {
+  const [r,g,b] = hexToRgb(hex);
+  return 0.299*r + 0.587*g + 0.114*b;
+}
+function swatchBorder(hex) {
+  return luminance(hex) > 240 ? 'border-color:#ddd' : '';
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function isMobile() { return window.matchMedia('(max-width: 640px)').matches; }
+
+// ─── PALETTE UI ─────────────────────────────────────────────────────────────
+function togglePalette() {
+  uiState.paletteOpen = !uiState.paletteOpen;
+  document.getElementById('palette-body').classList.toggle('open', uiState.paletteOpen);
+  document.getElementById('palette-toggle').classList.toggle('open', uiState.paletteOpen);
+  document.getElementById('palette-header').classList.toggle('open', uiState.paletteOpen);
+  saveState();
+}
+
+function renderPalettePreview() {
+  const el = document.getElementById('palette-preview');
+  el.innerHTML = palette
+    .filter(p => p.id !== 'non_peint')
+    .slice(0, 12)
+    .map(p => `<span class="palette-preview-swatch" style="background:${p.hex};${swatchBorder(p.hex)}"></span>`)
+    .join('');
+}
+
+function renderPalette() {
+  const grid = document.getElementById('palette-grid');
+  grid.innerHTML = palette.map(p => {
+    const isNon = p.id === 'non_peint';
+    const safeId = escapeHtml(p.id);
+    return `
+    <div class="paint-entry" id="palette-entry-${safeId}">
+      ${isNon
+        ? `<span class="paint-swatch-disabled" aria-hidden="true"></span>`
+        : `<input type="color" class="paint-swatch-big" value="${p.hex}" oninput="onPaintColor('${safeId}', this.value)" aria-label="Choisir la couleur ${escapeHtml(p.label)}">`
+      }
+      <div class="paint-entry-fields">
+        <input class="paint-name-input" value="${escapeHtml(p.label)}" ${isNon ? 'disabled' : `oninput="onPaintLabel('${safeId}', this.value)"`} placeholder="Nom de la couleur">
+        ${isNon
+          ? `<select class="paint-finish-select" disabled><option>—</option></select>`
+          : `<select class="paint-finish-select" onchange="onPaintFinish('${safeId}', this.value)">${FINISHES.map(f => `<option value="${f}" ${f === p.finish ? 'selected' : ''}>${f}</option>`).join('')}</select>`
+        }
+      </div>
+      ${isNon
+        ? `<span class="paint-delete-spacer" aria-hidden="true"></span>`
+        : `<button class="paint-delete-btn" onclick="onDeletePaint('${safeId}')" aria-label="Supprimer ${escapeHtml(p.label)}">×</button>`
+      }
+    </div>`;
+  }).join('');
+  renderPalettePreview();
+}
+
+function onPaintColor(id, hex) {
+  const p = palette.find(x => x.id === id);
+  if (!p) return;
+  p.hex = hex;
+  renderPalettePreview();
+  rebuildAllWallTriggers();
+  renderTotals();
+  saveState();
+}
+
+function onPaintLabel(id, val) {
+  const p = palette.find(x => x.id === id);
+  if (!p) return;
+  p.label = val;
+  rebuildAllWallTriggers();
+  renderTotals();
+  saveState();
+}
+
+function onPaintFinish(id, val) {
+  const p = palette.find(x => x.id === id);
+  if (!p) return;
+  p.finish = val;
+  rebuildAllWallTriggers();
+  renderTotals();
+  saveState();
+}
+
+function onDeletePaint(id) {
+  const p = palette.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`Supprimer "${paintLabel(p)}" ? Les murs qui l'utilisent seront mis à "Non peint".`)) return;
+  palette = palette.filter(x => x.id !== id);
+  Object.keys(assignments).forEach(k => { if (assignments[k] === id) assignments[k] = 'non_peint'; });
+  renderPalette();
+  rebuildAllWallTriggers();
+  renderTotals();
+  saveState();
+}
+
+function addPaint() {
+  const id = 'custom_' + Date.now();
+  const idx = palette.findIndex(p => p.id === 'non_peint');
+  const insertAt = idx >= 0 ? idx : palette.length;
+  palette.splice(insertAt, 0, { id, label: 'Nouvelle couleur', hex: '#CCCCCC', finish: 'mat' });
+  if (!uiState.paletteOpen) togglePalette();
+  renderPalette();
+  rebuildAllWallTriggers();
+  saveState();
+}
+
+// ─── ROOMS UI ───────────────────────────────────────────────────────────────
+function renderRooms() {
+  const container = document.getElementById('rooms-container');
+  container.innerHTML = ROOMS.map(room => `
+    <div class="room-card">
+      <div class="accordion-header ${uiState.roomsOpen[room.id] ? 'open' : ''}" id="room-header-${room.id}" onclick="toggleRoom('${room.id}')">
+        <span class="room-name">${escapeHtml(room.name)}</span>
+        <span class="room-header-right">
+          <span class="room-meta">${escapeHtml(room.meta)}</span>
+          <span class="accordion-toggle ${uiState.roomsOpen[room.id] ? 'open' : ''}" id="room-toggle-${room.id}">▼</span>
+        </span>
+      </div>
+      <div class="room-body ${uiState.roomsOpen[room.id] ? 'open' : ''}" id="room-body-${room.id}">
+        <table class="wall-table">
+          <thead><tr>
+            <th style="width:20%">Mur</th>
+            <th style="width:12%">Dims</th>
+            <th style="width:8%">Brut</th>
+            <th style="width:20%">Déductions</th>
+            <th style="width:8%">Net</th>
+            <th style="width:24%">Couleur</th>
+            <th style="width:8%;text-align:center" title="Mur déjà peint">Fait</th>
+          </tr></thead>
+          <tbody>
+            ${room.walls.map(w => {
+              const key = `${room.id}_${w.id}`;
+              const net = getNet(room.id, w.id);
+              const dedHtml = w.dedLabel.includes('<est>')
+                ? escapeHtml(w.dedLabel.replace('<est>','').trim()) + ' <span class="note">est.</span>'
+                : escapeHtml(w.dedLabel);
+              const isDone = !!wallsDone[key];
+              return `<tr class="wall-row ${isDone ? 'done' : ''}" id="row-${key}">
+                <td class="cell-name wall-name">${escapeHtml(w.label)}</td>
+                <td class="cell-dims wall-dims">${escapeHtml(w.dims)}</td>
+                <td class="cell-brut wall-brut">${w.brut > 0 ? fmt(w.brut)+' m²' : '—'}</td>
+                <td class="cell-ded"><span class="wall-ded">${dedHtml}</span></td>
+                <td class="cell-net wall-net" id="net-${key}">${net > 0 ? fmt(net)+' m²' : '<span class="muted">—</span>'}</td>
+                <td class="cell-color">${buildSelectHTML(key, assignments[key])}</td>
+                <td class="cell-done done-cell" id="done-${key}">${renderDoneCellHTML(key, w)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`).join('');
+}
+
+function toggleRoom(roomId) {
+  uiState.roomsOpen[roomId] = !uiState.roomsOpen[roomId];
+  const open = uiState.roomsOpen[roomId];
+  document.getElementById('room-body-' + roomId).classList.toggle('open', open);
+  document.getElementById('room-toggle-' + roomId).classList.toggle('open', open);
+  document.getElementById('room-header-' + roomId).classList.toggle('open', open);
+  saveState();
+}
+
+function renderDoneCellHTML(key, wall) {
+  const canBeDone = wall.brut > 0 && assignments[key] !== 'non_peint';
+  if (!canBeDone) return '';
+  const isDone = !!wallsDone[key];
+  return `<label title="Marquer comme peint"><input type="checkbox" class="done-checkbox" ${isDone ? 'checked' : ''} onchange="toggleWallDone('${key}', this.checked)"></label>`;
+}
+
+function toggleWallDone(key, checked) {
+  if (checked) wallsDone[key] = true;
+  else delete wallsDone[key];
+  const row = document.getElementById('row-' + key);
+  if (row) row.classList.toggle('done', checked);
+  renderTotals();
+  saveState();
+}
+
+function updateNetCell(key) {
+  const [roomId, ...rest] = key.split('_');
+  const wallId = rest.join('_');
+  const net = getNet(roomId, wallId);
+  const el = document.getElementById('net-' + key);
+  if (el) el.innerHTML = net > 0 ? fmt(net)+' m²' : '<span class="muted">—</span>';
+}
+
+// ─── CUSTOM SELECT ──────────────────────────────────────────────────────────
+let activeDropdown = null;
+
+function buildSelectHTML(key, paintId) {
+  return `<div class="custom-select" id="cs-${key}">${buildTriggerHTML(key, paintId)}<div class="custom-dropdown" id="dd-${key}"></div></div>`;
+}
+
+function buildTriggerHTML(key, paintId) {
+  const p = getPaint(paintId);
+  return `<div class="custom-select-trigger" id="trigger-${key}" onclick="openSelector('${key}', event)">
+    <span class="swatch" style="background:${p.hex};${swatchBorder(p.hex)}"></span>
+    <span class="label">${escapeHtml(paintLabel(p))}</span>
+  </div>`;
+}
+
+function buildOptionsHTML(currentId, key) {
+  return palette.map(p => `
+    <div class="dropdown-option ${p.id === currentId ? 'selected' : ''}" onclick="selectPaint('${key}', '${escapeHtml(p.id)}')">
+      <span class="swatch" style="background:${p.hex};${swatchBorder(p.hex)}"></span>
+      <span>${escapeHtml(paintLabel(p))}</span>
+    </div>`).join('');
+}
+
+function openSelector(key, e) {
+  e.stopPropagation();
+  if (isMobile()) {
+    openColorSheet(key);
+  } else {
+    toggleDropdown(key);
+  }
+}
+
+function toggleDropdown(key) {
+  const dd = document.getElementById('dd-' + key);
+  const trigger = document.getElementById('trigger-' + key);
+  if (!dd || !trigger) return;
+  if (activeDropdown && activeDropdown !== key) {
+    const prev = document.getElementById('dd-' + activeDropdown);
+    if (prev) prev.classList.remove('open');
+  }
+  if (dd.classList.contains('open')) {
+    dd.classList.remove('open');
+    activeDropdown = null;
+    return;
+  }
+  dd.innerHTML = buildOptionsHTML(assignments[key], key);
+  const rect = trigger.getBoundingClientRect();
+  const ddWidth = Math.max(rect.width, 200);
+  dd.style.minWidth = ddWidth + 'px';
+  dd.style.top = (rect.bottom + 4) + 'px';
+  let left = rect.left;
+  if (left + ddWidth > window.innerWidth - 8) left = window.innerWidth - ddWidth - 8;
+  dd.style.left = Math.max(8, left) + 'px';
+  // Flip up if not enough space below
+  const ddMaxHeight = 320;
+  if (rect.bottom + ddMaxHeight > window.innerHeight - 8 && rect.top > ddMaxHeight) {
+    dd.style.top = (rect.top - Math.min(ddMaxHeight, rect.top - 8) - 4) + 'px';
+  }
+  dd.classList.add('open');
+  activeDropdown = key;
+}
+
+function closeAllDropdowns() {
+  if (activeDropdown) {
+    const dd = document.getElementById('dd-' + activeDropdown);
+    if (dd) dd.classList.remove('open');
+    activeDropdown = null;
+  }
+}
+
+let activeSheetKey = null;
+function openColorSheet(key) {
+  activeSheetKey = key;
+  const sheet = document.getElementById('color-sheet');
+  document.getElementById('color-sheet-list').innerHTML = buildOptionsHTML(assignments[key], key);
+  if (typeof sheet.showModal === 'function') {
+    sheet.showModal();
+  } else {
+    // Fallback for browsers without <dialog> support
+    sheet.setAttribute('open', '');
+  }
+}
+function closeColorSheet() {
+  const sheet = document.getElementById('color-sheet');
+  if (typeof sheet.close === 'function' && sheet.open) sheet.close();
+  else sheet.removeAttribute('open');
+  activeSheetKey = null;
+}
+
+function selectPaint(key, paintId) {
+  assignments[key] = paintId;
+  if (paintId === 'non_peint') delete wallsDone[key];
+  closeAllDropdowns();
+  if (activeSheetKey === key) closeColorSheet();
+  const cs = document.getElementById('cs-' + key);
+  if (cs) {
+    const oldTrigger = document.getElementById('trigger-' + key);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = buildTriggerHTML(key, paintId);
+    if (oldTrigger) cs.replaceChild(tmp.firstElementChild, oldTrigger);
+  }
+  // Refresh done cell visibility (depends on paintId)
+  const [roomId, ...rest] = key.split('_');
+  const wallId = rest.join('_');
+  const wall = ROOMS.find(r => r.id === roomId)?.walls.find(w => w.id === wallId);
+  const doneCell = document.getElementById('done-' + key);
+  if (doneCell && wall) doneCell.innerHTML = renderDoneCellHTML(key, wall);
+  const row = document.getElementById('row-' + key);
+  if (row) row.classList.toggle('done', !!wallsDone[key]);
+  updateNetCell(key);
+  renderTotals();
+  saveState();
+}
+
+function rebuildAllWallTriggers() {
+  ROOMS.forEach(room => {
+    room.walls.forEach(wall => {
+      const key = `${room.id}_${wall.id}`;
+      const oldTrigger = document.getElementById('trigger-' + key);
+      const cs = document.getElementById('cs-' + key);
+      if (!oldTrigger || !cs) return;
+      // Sanity: paint may have been deleted
+      if (!palette.find(p => p.id === assignments[key])) {
+        assignments[key] = 'non_peint';
+        delete wallsDone[key];
+      }
+      const tmp = document.createElement('div');
+      tmp.innerHTML = buildTriggerHTML(key, assignments[key]);
+      cs.replaceChild(tmp.firstElementChild, oldTrigger);
+      const doneCell = document.getElementById('done-' + key);
+      if (doneCell) doneCell.innerHTML = renderDoneCellHTML(key, wall);
+      const row = document.getElementById('row-' + key);
+      if (row) row.classList.toggle('done', !!wallsDone[key]);
+      updateNetCell(key);
+    });
+  });
+}
+
+// ─── TOTALS ─────────────────────────────────────────────────────────────────
+function renderTotals() {
+  const totals = {};
+  palette.forEach(p => { if (p.id !== 'non_peint') totals[p.id] = 0; });
+  ROOMS.forEach(room => {
+    room.walls.forEach(wall => {
+      const key = `${room.id}_${wall.id}`;
+      const pid = assignments[key];
+      if (pid && pid !== 'non_peint' && totals[pid] !== undefined) {
+        totals[pid] += getRemainingNet(room.id, wall.id);
+      }
+    });
+  });
+
+  const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  document.getElementById('totals-grid').innerHTML = sorted.map(([id, m2]) => {
+    const p = getPaint(id);
+    const isZero = m2 < 0.01;
+    return `<div class="total-card ${isZero ? 'zero' : ''}">
+      <div class="total-label">
+        <span class="total-chip" style="background:${p.hex};${swatchBorder(p.hex)}"></span>
+        ${escapeHtml(paintLabel(p))}
+      </div>
+      <div class="total-val">${isZero ? '0' : fmt(m2)} m²</div>
+      <div class="total-liters">${isZero ? '—' : fmt1(toLiters(m2)) + ' L'}</div>
+    </div>`;
+  }).join('');
+
+  const grand = Object.values(totals).reduce((s, v) => s + v, 0);
+  document.getElementById('grand-total-val').textContent = fmt(grand) + ' m²';
+
+  if (sorted.length && sorted[0][1] > 0.01) {
+    const [bigId, bigVal] = sorted[0];
+    const bp = getPaint(bigId);
+    document.getElementById('biggest-color').textContent = paintLabel(bp);
+    document.getElementById('biggest-qty').textContent = fmt(bigVal) + ' m²';
+    const bigL = Math.ceil((bigVal / 6) * 1.15 * 10) / 10;
+    document.getElementById('biggest-liters').textContent = `Prévoir ${fmt1(bigL)} L (avec marge +15%)`;
+  } else {
+    document.getElementById('biggest-color').textContent = '—';
+    document.getElementById('biggest-qty').textContent = '—';
+    document.getElementById('biggest-liters').textContent = '—';
+  }
+}
+
+// ─── RENDER ALL ─────────────────────────────────────────────────────────────
+function renderAll() {
+  document.getElementById('palette-body').classList.toggle('open', uiState.paletteOpen);
+  document.getElementById('palette-toggle').classList.toggle('open', uiState.paletteOpen);
+  document.getElementById('palette-header').classList.toggle('open', uiState.paletteOpen);
+  renderPalette();
+  renderRooms();
+  renderTotals();
+}
+
+// ─── GLOBAL LISTENERS ───────────────────────────────────────────────────────
+document.addEventListener('click', closeAllDropdowns);
+window.addEventListener('resize', closeAllDropdowns);
+window.addEventListener('scroll', closeAllDropdowns, true);
+
+// Close color sheet when tapping backdrop
+document.getElementById('color-sheet').addEventListener('click', e => {
+  if (e.target.id === 'color-sheet') closeColorSheet();
+});
+
+// ─── INIT ───────────────────────────────────────────────────────────────────
+loadState();
+renderAll();
+</script>
+</body>
+</html>
